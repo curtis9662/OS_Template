@@ -1,0 +1,54 @@
+# Force update Windows 10
+Write-Host "Starting Windows Update..." -ForegroundColor Green
+$updateSession = New-Object -ComObject Microsoft.Update.Session
+$updateSearcher = $updateSession.CreateUpdateSearcher()
+$updates = $updateSearcher.Search("IsInstalled=0 and Type='Software'").Updates
+
+if ($updates.Count -eq 0) {
+    Write-Host "No updates found." -ForegroundColor Yellow
+} else {
+    $downloader = $updateSession.CreateUpdateDownloader()
+    $downloader.Updates = $updates
+    $downloader.Download()
+    
+    $installer = $updateSession.CreateUpdateInstaller()
+    $installer.Updates = $updates | Where-Object { $_.IsDownloaded }
+    $installationResult = $installer.Install()
+    
+    if ($installationResult.ResultCode -eq 2) {
+        Write-Host "Updates installed successfully." -ForegroundColor Green
+    } else {
+        Write-Host "Updates installation failed with error code: $($installationResult.ResultCode)" -ForegroundColor Red
+    }
+}
+
+# Uninstall all default Windows software
+Write-Host "Uninstalling default Windows software..." -ForegroundColor Green
+$defaultApps = @(
+    "3dbuilder",
+    "bingfinance",
+    "bingnews",
+    "bingsports",
+    "bingweather",
+    "getstarted",
+    "officehub",
+    "photos",
+    "calculator",
+    "camera",
+    "maps",
+    "soundrecorder",
+    "windowscommunicationsapps"
+)
+
+foreach ($app in $defaultApps) {
+    Write-Host "Uninstalling $app..." -ForegroundColor Yellow
+    $appPackages = dism /Online /Get-ProvisionedAppxPackages | Select-String -Pattern $app
+    foreach ($package in $appPackages) {
+        $packageName = $package -replace ".*PackageFullName\s+:\s+" -replace "\s*"
+        if ($packageName) {
+            dism /Online /Remove-ProvisionedAppxPackage /PackageName:$packageName
+        }
+    }
+}
+
+Write-Host "Finished uninstalling default Windows software." -ForegroundColor Green
