@@ -1,0 +1,12 @@
+# PowerShell script to download and install Nmap on Windows
+$url = "https://nmap.org/dist/nmap-7.91-setup.exe"  # Check for the latest version
+$output = "$env:TEMP\nmap-7.91-setup.exe"  # Temporarily store file here
+
+# Download the installer
+Invoke-WebRequest -Uri $url -OutFile $output
+
+# Run the installer
+Start-Process -Wait -FilePath $output
+
+# Remove the installer
+Remove-Item -Path $output
